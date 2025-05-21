@@ -30,6 +30,10 @@ export interface PaddingOption {
   blankLine: keyof typeof PaddingTypes;
   prev: StatementType | StatementType[];
   next: StatementType | StatementType[];
+  /**
+   * Optional. Restrict rule application to these AST node types (e.g., FunctionDeclaration).
+   */
+  nodeContext?: AST_NODE_TYPES | AST_NODE_TYPES[];
 }
 
 type MessageIds = "expectedBlankLine" | "unexpectedBlankLine";
@@ -584,6 +588,18 @@ export default ESLintUtils.RuleCreator((name) => `https://github.com/mu-io/${nam
             ],
           },
           next: { $ref: "#/items/properties/prev" },
+          nodeContext: {
+            anyOf: [
+              { $ref: "#/definitions/nodeType" },
+              {
+                type: "array",
+                items: { $ref: "#/definitions/nodeType" },
+                minItems: 1,
+                uniqueItems: true,
+                additionalItems: false,
+              },
+            ],
+          },
         },
         additionalProperties: false,
         required: ["blankLine", "prev", "next"],
@@ -741,6 +757,29 @@ export default ESLintUtils.RuleCreator((name) => `https://github.com/mu-io/${nam
     ): typeof PaddingTypes[keyof typeof PaddingTypes] {
       for (let i = configureList.length - 1; i >= 0; --i) {
         const configure = configureList[i];
+
+        // If nodeContext is set, only apply if the parent node matches
+        if (configure.nodeContext) {
+          const nodeContexts = Array.isArray(configure.nodeContext)
+            ? configure.nodeContext
+            : [configure.nodeContext];
+
+          // Find the nearest ancestor node that matches any nodeContext
+          let { parent } = nextNode;
+          let found = false;
+
+          while (parent) {
+            if (nodeContexts.includes(parent.type as AST_NODE_TYPES)) {
+              found = true;
+              break;
+            }
+
+            parent = parent.parent;
+          }
+
+          // eslint-disable-next-line no-continue
+          if (!found) continue;
+        }
 
         if (match(prevNode, configure.prev) && match(nextNode, configure.next)) {
           return PaddingTypes[configure.blankLine];

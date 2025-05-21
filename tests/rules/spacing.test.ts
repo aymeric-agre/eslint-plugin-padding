@@ -2825,6 +2825,28 @@ var a = 1
       code: "function test() {};",
       options: [{ blankLine: "always", prev: "block-like", next: "block-like" }],
     },
+
+    // ----------------------------------------------------------------------
+    // nodeContext tests
+    // ----------------------------------------------------------------------
+
+    {
+      code: `function foo(){
+  const a = 1;
+  return a;
+}
+  
+foo();
+`,
+      options: [
+        {
+          blankLine: "never",
+          prev: "*",
+          next: "*",
+          nodeContext: AST_NODE_TYPES.FunctionDeclaration,
+        },
+      ],
+    },
   ],
   invalid: [
     //
@@ -5066,6 +5088,63 @@ var a = 1
         { messageId: "expectedBlankLine" },
         { messageId: "expectedBlankLine" },
       ],
+    },
+
+    // ----------------------------------------------------------------------
+    // nodeContext tests
+    // ----------------------------------------------------------------------
+
+    {
+      code: `function foo(){
+  const a = 1;
+
+  return a;
+}
+  
+foo();
+`,
+      output: `function foo(){
+  const a = 1;
+  return a;
+}
+  
+foo();
+`,
+      options: [
+        {
+          blankLine: "never",
+          prev: "*",
+          next: "*",
+          nodeContext: AST_NODE_TYPES.FunctionDeclaration,
+        },
+      ],
+      errors: [{ messageId: "unexpectedBlankLine" }],
+    },
+    {
+      code: `function foo(){
+  const a = 1;
+  return a;
+}
+  
+foo();
+`,
+      output: `function foo(){
+  const a = 1;
+
+  return a;
+}
+  
+foo();
+`,
+      options: [
+        {
+          blankLine: "always",
+          prev: "*",
+          next: "return",
+          nodeContext: AST_NODE_TYPES.FunctionDeclaration,
+        },
+      ],
+      errors: [{ messageId: "expectedBlankLine" }],
     },
   ],
 });
